@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import formbricks from "@formbricks/js/website";
 
 const handleClick = () => {
@@ -38,6 +38,7 @@ import { Element } from "react-scroll";
 import CustomSlider from "../CustomSlider";
 const backendUrl = import.meta.env.VITE_REACT_APP_BACKEND_URL;
 const MenuProps = {
+  disablePortal: true,
   PaperProps: {
     style: {
       maxHeight: "none",
@@ -74,13 +75,34 @@ function Filter() {
   const [open, setOpen] = useState(false);
   const [range, setRange] = useState([0, 0]);
   const [maxValue, setMaxValue] = useState(Number);
+  const closeTimerRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    closeTimerRef.current = setTimeout(() => {
+      setOpen(false);
+    }, 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
   useEffect(() => {
     // Fetch data from the backend API
     const selectedPlatformsParam = selectedPlatforms.join(",");
     const url = selectedPlatformsParam
       ? `${backendUrl}/contests?host=${selectedPlatformsParam}`
       : `${backendUrl}/contests`;
-      
+
     fetch(url)
       .then((response) => response.json())
       .then((data) => {
@@ -105,7 +127,6 @@ function Filter() {
   };
   const handleChange = (e) => {
     setSelectedPlatforms(e.target.value);
-    setOpen(!open);
   };
   return (
     <>
@@ -114,6 +135,8 @@ function Filter() {
         {/* //checkmarks */}
         <div
           className={"filter-div w-fit self-center bg-cardsColor relative rounded-xl"}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <FormControl
             variant="filled"
@@ -133,7 +156,8 @@ function Filter() {
               open={open}
               multiple
               value={selectedPlatforms}
-              onClick={!open ? () => setOpen(true) : () => setOpen(false)}
+              onOpen={() => setOpen(true)}
+              onClose={() => setOpen(false)}
               onChange={handleChange}
               input={<OutlinedInput id="select-multiple-chip" label="" />}
               renderValue={(selected) => (
@@ -189,10 +213,10 @@ function Filter() {
           <>
             <p className="mx-auto text-center mt-4 text-xl">
               Have a favorite contest platform we're missing? {" "} Join our <a href="https://digitomize.com/discord" target="_blank" rel="noopener noreferrer" className="text-digitomize-bg">Discord</a> or <button className="text-digitomize-bg" onClick={handleClick}>
-              click here
-            </button> and let us know!
+                click here
+              </button> and let us know!
             </p>
-            
+
             <Contests contests={contestsData} range={range} />
           </>
         ) : (
